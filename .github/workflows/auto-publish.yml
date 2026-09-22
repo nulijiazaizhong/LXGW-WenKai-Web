@@ -1,0 +1,294 @@
+name: Auto Build and Publish
+
+# Fully automatic pipeline: discover upstream → download → WOFF2 build → test
+# → bump SemVer → commit dist/ into a release tag → GitHub Release (jsDelivr-ready).
+#
+# Triggers:
+#   - daily schedule (after Upstream Check window)
+#   - manual workflow_dispatch (force rebuild / pin version)
+#   - push to default branch that touches UPSTREAM_VERSION or packaging code
+#   - upstream-check.yml may dispatch this workflow on a new upstream release
+
+on:
+  schedule:
+    # Daily 03:30 UTC (30 minutes after upstream-check)
+    - cron: "30 3 * * *"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Force WebFont version (e.g. 1.0.0). Empty = auto bump"
+        required: false
+        type: string
+        default: ""
+      bump:
+        description: "Auto SemVer segment when version is empty"
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+      include_mono:
+        description: "Also package LXGW WenKai Mono"
+        type: boolean
+        default: false
+      force:
+        description: "Publish even if upstream version unchanged"
+        type: boolean
+        default: true
+  push:
+    branches: [main, master]
+    paths:
+      - "UPSTREAM_VERSION"
+      - "scripts/**"
+      - "pyproject.toml"
+      - "requirements.txt"
+      - ".github/workflows/auto-publish.yml"
+  repository_dispatch:
+    types: [auto-publish]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: auto-publish
+  cancel-in-progress: false
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve inputs
+        id: input
+        run: |
+          case "${{ github.event_name }}" in
+            workflow_dispatch)
+              echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+              echo "bump=${{ inputs.bump }}" >> "$GITHUB_OUTPUT"
+              echo "force=${{ inputs.force }}" >> "$GITHUB_OUTPUT"
+              echo "include_mono=${{ inputs.include_mono }}" >> "$GITHUB_OUTPUT"
+              ;;
+            repository_dispatch)
+              echo "version=${{ github.event.client_payload.version }}" >> "$GITHUB_OUTPUT"
+              echo "bump=${{ github.event.client_payload.bump || 'minor' }}" >> "$GITHUB_OUTPUT"
+              echo "force=true" >> "$GITHUB_OUTPUT"
+              echo "include_mono=${{ github.event.client_payload.include_mono || false }}" >> "$GITHUB_OUTPUT"
+              ;;
+            push)
+              # UPSTREAM_VERSION / packaging code changed on default branch.
+              echo "version=" >> "$GITHUB_OUTPUT"
+              echo "bump=patch" >> "$GITHUB_OUTPUT"
+              echo "force=true" >> "$GITHUB_OUTPUT"
+              echo "include_mono=false" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              # schedule
+              echo "version=" >> "$GITHUB_OUTPUT"
+              echo "bump=minor" >> "$GITHUB_OUTPUT"
+              # Only publish when upstream actually moved (checked below).
+              echo "force=false" >> "$GITHUB_OUTPUT"
+              echo "include_mono=false" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Check upstream
+        id: upstream
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set +e
+          python scripts/check_upstream.py --json --output /tmp/upstream.json
+          code=$?
+          set -e
+          echo "exit=$code" >> "$GITHUB_OUTPUT"
+          if [ "$code" -eq 0 ]; then
+            echo "has_update=false" >> "$GITHUB_OUTPUT"
+          elif [ "$code" -eq 10 ]; then
+            echo "has_update=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Upstream check failed with exit $code"
+            exit 1
+          fi
+          if [ -f /tmp/upstream.json ]; then
+            python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          data = json.load(open("/tmp/upstream.json"))
+          print(f"upstream_version={data.get('upstream_version') or ''}")
+          print(f"upstream_tag={data.get('upstream_tag') or ''}")
+          PY
+          fi
+
+      - name: Decide whether to publish
+        id: decide
+        run: |
+          FORCE="${{ steps.input.outputs.force }}"
+          HAS_UPDATE="${{ steps.upstream.outputs.has_update }}"
+          if [ "$FORCE" = "true" ] || [ "$HAS_UPDATE" = "true" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "No upstream update and force=false — skipping publish."
+          fi
+
+      - name: Download upstream fonts
+        if: steps.decide.outputs.publish == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ARGS=(--force --update-upstream-version)
+          if [ "${{ steps.input.outputs.include_mono }}" = "true" ]; then
+            ARGS+=(--include-mono)
+          fi
+          python scripts/download.py "${ARGS[@]}"
+
+      - name: Build WebFont package
+        if: steps.decide.outputs.publish == 'true'
+        run: python scripts/build.py
+
+      - name: Test package
+        if: steps.decide.outputs.publish == 'true'
+        run: python scripts/test.py
+
+      - name: Resolve SemVer
+        if: steps.decide.outputs.publish == 'true'
+        id: ver
+        run: |
+          set -euo pipefail
+          LATEST="$(git describe --tags --abbrev=0 2>/dev/null || echo v0.0.0)"
+          echo "latest_tag=${LATEST}" >> "$GITHUB_OUTPUT"
+          if [ -n "${{ steps.input.outputs.version }}" ]; then
+            VER="$(python scripts/next_version.py --set '${{ steps.input.outputs.version }}')"
+          else
+            BUMP="${{ steps.input.outputs.bump }}"
+            # New upstream font version → minor; otherwise the requested bump.
+            if [ "${{ steps.upstream.outputs.has_update }}" = "true" ] && [ "$BUMP" = "patch" ]; then
+              BUMP=minor
+            fi
+            VER="$(python scripts/next_version.py --from-tag "$LATEST" --bump "$BUMP")"
+          fi
+          echo "version=${VER}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${VER}" >> "$GITHUB_OUTPUT"
+          python - <<PY
+          from pathlib import Path
+          import re
+          ver = "${VER}"
+          path = Path("pyproject.toml")
+          text = path.read_text(encoding="utf-8")
+          text, n = re.subn(r'(?m)^version\s*=\s*"[^"]+"', f'version = "{ver}"', text, count=1)
+          assert n == 1
+          path.write_text(text, encoding="utf-8")
+          print(f"pyproject.toml version -> {ver}")
+          PY
+
+      - name: Commit dist, tag, and create GitHub Release
+        if: steps.decide.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.ver.outputs.tag }}"
+          WEB="${{ steps.ver.outputs.version }}"
+          DEFAULT_BRANCH="${{ github.event.repository.default_branch }}"
+          UPSTREAM="$(tr -d '[:space:]' < UPSTREAM_VERSION 2>/dev/null || echo unknown)"
+          BUILT_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Stage package inputs + dist product (jsDelivr /gh/ needs dist on the tag).
+          git add UPSTREAM_VERSION pyproject.toml
+          git add -f dist/ || true
+
+          if git diff --cached --quiet; then
+            echo "Nothing to commit (tree already matches release content)."
+            RELEASE_SHA="$(git rev-parse HEAD)"
+          else
+            git commit -m "release: ${TAG} auto build and publish (upstream ${UPSTREAM})"
+            RELEASE_SHA="$(git rev-parse HEAD)"
+          fi
+
+          git push origin "HEAD:${DEFAULT_BRANCH}"
+
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            EXISTING="$(git rev-parse "$TAG")"
+            if [ "$EXISTING" = "$RELEASE_SHA" ]; then
+              echo "Tag $TAG already points at $RELEASE_SHA"
+            elif gh release view "$TAG" >/dev/null 2>&1; then
+              echo "Tag $TAG already has a Release; refusing to move it." >&2
+              exit 1
+            else
+              git tag -f -a "$TAG" -m "WebFont ${WEB}" "$RELEASE_SHA"
+              git push origin "refs/tags/${TAG}" --force
+            fi
+          else
+            git tag -a "$TAG" -m "WebFont ${WEB}" "$RELEASE_SHA"
+            git push origin "refs/tags/${TAG}"
+          fi
+
+          mkdir -p release-assets
+          cp -a dist/. release-assets/
+          if [ ! -f release-assets/OFL.txt ] && [ -f OFL.txt ]; then
+            cp OFL.txt release-assets/OFL.txt
+          fi
+
+          NOTES="$(cat <<EOF
+          ## LXGW WenKai WebFont ${WEB}
+
+          | Field | Value |
+          | --- | --- |
+          | WebFont version | \`${WEB}\` |
+          | Upstream | [lxgw/LxgwWenKai](https://github.com/lxgw/LxgwWenKai) \`${UPSTREAM}\` |
+          | Build date | ${BUILT_AT} |
+          | Commit | \`${RELEASE_SHA}\` |
+          | License | OFL-1.1 |
+
+          ### jsDelivr (pinned — recommended for production)
+
+          \`\`\`html
+          <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/nulijiazaizhong/LXGW-WenKai-Web@${TAG}/dist/style.css" />
+          \`\`\`
+
+          Do **not** use \`@latest\` / \`@main\` in production.
+
+          ### Assets
+
+          - \`*.woff2\` — full WOFF2 faces
+          - \`style.css\` + \`lxgwwenkai-*.css\` — generated \`@font-face\` rules
+          - \`metadata.json\` / \`sha256.txt\` / \`OFL.txt\`
+
+          Auto-published by GitHub Actions. Original font by LXGW.
+          EOF
+          )"
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" release-assets/* --clobber
+          else
+            gh release create "$TAG" \
+              --title "WebFont ${WEB} (upstream ${UPSTREAM})" \
+              --notes "$NOTES" \
+              release-assets/*
+          fi
+
+          {
+            echo "## Auto publish"
+            echo "- Tag: \`${TAG}\`"
+            echo "- Upstream: \`${UPSTREAM}\`"
+            echo "- Commit: \`${RELEASE_SHA}\`"
+            echo "- jsDelivr: https://cdn.jsdelivr.net/gh/nulijiazaizhong/LXGW-WenKai-Web@${TAG}/dist/style.css"
+          } >> "$GITHUB_STEP_SUMMARY"

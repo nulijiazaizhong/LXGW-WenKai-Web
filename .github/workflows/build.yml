@@ -1,5 +1,7 @@
 name: Build WebFont
 
+# Validation build only. Automatic build + GitHub Release lives in auto-publish.yml.
+
 on:
   push:
     branches: [main, master]

@@ -255,17 +255,17 @@ no change → stop
 build + test
         ↓
 PR: bump UPSTREAM_VERSION
+        + repository_dispatch → auto-publish.yml
         ↓
-human review / merge
-        ↓
-tag vX.Y.Z → release.yml
-        ↓
-GitHub Release assets
+auto-publish.yml
+  download → WOFF2 → test → SemVer bump
+  → commit dist/ + tag vX.Y.Z
+  → GitHub Release
         ↓
 jsDelivr (pinned @vX.Y.Z)
 ```
 
-Why PR instead of auto-publish? A broken or unexpected upstream asset must not silently replace production CDN files.
+`auto-publish.yml` also runs on a daily cron and on pushes to `main` that touch packaging code / `UPSTREAM_VERSION`.
 
 ### Permissions
 
@@ -274,7 +274,8 @@ Workflows use the default `GITHUB_TOKEN` only (no personal PAT):
 | Workflow | Permissions |
 | --- | --- |
 | `build.yml` | `contents: read` |
-| `upstream-check.yml` | `contents: write`, `pull-requests: write` (create update PR) |
+| `upstream-check.yml` | `contents: write`, `pull-requests: write`, `actions: write` (PR + dispatch publish) |
+| `auto-publish.yml` | `contents: write` (commit dist, tag, Release) |
 | `release.yml` | `contents: write` (create Release + upload assets) |
 
 If your org blocks the default token from opening PRs, enable **“Allow GitHub Actions to create and approve pull requests”** in *Settings → Actions → General*, or create the PR manually from the check branch.
@@ -286,8 +287,9 @@ If your org blocks the default token from opening PRs, enable **“Allow GitHub 
 | Workflow | Trigger | Purpose |
 | --- | --- | --- |
 | `build.yml` | push/PR touching scripts, manual | Download → WOFF2 → test → artifact |
-| `upstream-check.yml` | daily cron + manual | Compare `UPSTREAM_VERSION`, open PR on update |
-| `release.yml` | tag `v*` / manual | Build and publish GitHub Release |
+| `upstream-check.yml` | daily cron + manual | Compare upstream, open PR, dispatch auto-publish |
+| `auto-publish.yml` | daily cron, push to main, manual, `repository_dispatch` | **Auto build + test + tag + GitHub Release** |
+| `release.yml` | tag `v*` / manual | Manual/override release with explicit version |
 
 Fail-fast: download failures, missing/corrupt fonts, conversion errors, empty glyph sets, CSS/metadata/SHA problems all **fail the job**.
 
@@ -296,6 +298,18 @@ Pip is cached; **font binaries are never cached** between runs (each build re-do
 ---
 
 ## Release
+
+### Automatic (default)
+
+`auto-publish.yml` builds, tests, **commits `dist/` into the release commit**, tags it, and publishes a GitHub Release:
+
+```text
+*.woff2  style.css  lxgwwenkai-*.css  metadata.json  sha256.txt  OFL.txt
+```
+
+Triggered by: daily cron, push to `main` (packaging code / `UPSTREAM_VERSION`), Upstream Check dispatch, or **Actions → Auto Build and Publish → Run workflow**.
+
+### Manual
 
 1. Merge the upstream-update PR (if any).
 2. Run **Actions → Release → Run workflow** and set `version` (e.g. `v1.0.0`).

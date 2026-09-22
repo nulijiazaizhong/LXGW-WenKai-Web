@@ -1,5 +1,8 @@
 name: Release
 
+# Manual / tag-driven release. For fully automatic build+publish use auto-publish.yml
+# (schedule, push to main, or repository_dispatch from Upstream Check).
+
 # Preferred entry: workflow_dispatch with a SemVer tag (e.g. v1.0.0).
 # Builds WebFonts, commits dist/ onto the release commit, tags it, and creates
 # a GitHub Release. Tag trees therefore contain dist/ so jsDelivr /gh/ works:
@@ -98,7 +101,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           # Ensure dist artifacts are tracked at the tagged commit (jsDelivr /gh/).
-          git add -f dist/*.woff2 dist/style.css dist/metadata.json dist/sha256.txt dist/OFL.txt 2>/dev/null || true
+          git add -f dist/*.woff2 dist/*.css dist/metadata.json dist/sha256.txt dist/OFL.txt 2>/dev/null || true
           git add dist UPSTREAM_VERSION
 
           if git diff --cached --quiet; then

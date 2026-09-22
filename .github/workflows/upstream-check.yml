@@ -9,6 +9,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  actions: write
 
 concurrency:
   group: upstream-check
@@ -114,11 +115,25 @@ jobs:
           - Tag: \`${tag}\`
           - Version: \`${version}\`
 
-          This PR updates \`UPSTREAM_VERSION\`. After merge, tag a WebFont release
-          (see \`release.yml\`) so jsDelivr can serve a pinned version.
+          Auto Build and Publish will also run so jsDelivr can serve a pinned tag.
 
-          Please review CI build/test results before merging.
+          Please review CI results before relying on the release.
           EOF
           )" \
             --base "${{ github.event.repository.default_branch }}" \
             --head "$branch"
+
+      - name: Trigger Auto Build and Publish
+        if: steps.check.outputs.has_update == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/${{ github.repository }}/dispatches" \
+            -f event_type=auto-publish \
+            -f "client_payload[version]=" \
+            -f "client_payload[bump]=minor" \
+            -f "client_payload[include_mono]=false"
+          echo "Dispatched repository_dispatch event_type=auto-publish"
