@@ -1,8 +1,8 @@
 {
   "name": "LXGW WenKai",
   "webfont": {
-    "version": "0.0.4",
-    "built_at": "2026-09-22T12:39:08Z",
+    "version": "0.0.5",
+    "built_at": "2026-09-22T12:45:21Z",
     "python_version": "3.12.14",
     "fonttools_version": "4.65.0",
     "builder": "lxgw-wenkai-webfont"
