@@ -30,7 +30,7 @@ Put the jsDelivr `<link>` into your HTML `<head>`, then set `font-family`.
 <head>
   <link
     rel="stylesheet"
-    href="https://cdn.jsdelivr.net/gh/nulijiazaizhong/LXGW-WenKai-Web@v1.0.0/dist/style.css"
+    href="https://cdn.jsdelivr.net/gh/nulijiazaizhong/LXGW-WenKai-Web@v0.0.1/dist/style.css"
   />
   <style>
     body {
@@ -55,9 +55,9 @@ Do **not** use `@latest` / `@main` in production.
 Direct WOFF2 (same pin):
 
 ```text
-https://cdn.jsdelivr.net/gh/nulijiazaizhong/LXGW-WenKai-Web@v1.0.0/dist/LXGWWenKai-Regular.woff2
-https://cdn.jsdelivr.net/gh/nulijiazaizhong/LXGW-WenKai-Web@v1.0.0/dist/LXGWWenKai-Medium.woff2
-https://cdn.jsdelivr.net/gh/nulijiazaizhong/LXGW-WenKai-Web@v1.0.0/dist/LXGWWenKai-Light.woff2
+https://cdn.jsdelivr.net/gh/nulijiazaizhong/LXGW-WenKai-Web@v0.0.1/dist/LXGWWenKai-Regular.woff2
+https://cdn.jsdelivr.net/gh/nulijiazaizhong/LXGW-WenKai-Web@v0.0.1/dist/LXGWWenKai-Medium.woff2
+https://cdn.jsdelivr.net/gh/nulijiazaizhong/LXGW-WenKai-Web@v0.0.1/dist/LXGWWenKai-Light.woff2
 ```
 
 #### Use NPM
@@ -85,8 +85,8 @@ body {
 Include only the weights you need (smaller CSS payload, fewer font files):
 
 ```css
-@import "https://cdn.jsdelivr.net/gh/nulijiazaizhong/LXGW-WenKai-Web@v1.0.0/dist/lxgwwenkai-regular.css";
-@import "https://cdn.jsdelivr.net/gh/nulijiazaizhong/LXGW-WenKai-Web@v1.0.0/dist/lxgwwenkai-medium.css";
+@import "https://cdn.jsdelivr.net/gh/nulijiazaizhong/LXGW-WenKai-Web@v0.0.1/dist/lxgwwenkai-regular.css";
+@import "https://cdn.jsdelivr.net/gh/nulijiazaizhong/LXGW-WenKai-Web@v0.0.1/dist/lxgwwenkai-medium.css";
 
 body {
   font-family: "LXGW WenKai", sans-serif;
@@ -343,7 +343,7 @@ jsDelivr reads **this repository’s tags** — nothing is uploaded to jsDelivr.
 
 | Selector | Use |
 | --- | --- |
-| `@v1.0.0` | **Production** — immutable, cache-friendly |
+| `@v0.0.1` | **Production** — immutable, cache-friendly |
 | `@v1.0` / `@1` | jsDelivr semver ranges (floating within major/minor); pin if you need strict immutability |
 | `@main` | **Testing only** — changes without notice; not for production |
 | `@latest` | **Not recommended** for production |
@@ -389,7 +389,7 @@ git push -u origin main
 #   Actions → Release → Run workflow → version=v1.0.0
 ```
 
-Then open `https://cdn.jsdelivr.net/gh/nulijiazaizhong/LXGW-WenKai-Web@v1.0.0/dist/style.css` and confirm fonts load.
+Then open `https://cdn.jsdelivr.net/gh/nulijiazaizhong/LXGW-WenKai-Web@v0.0.1/dist/style.css` and confirm fonts load.
 
 ---
 
