@@ -146,25 +146,6 @@ jobs:
             echo "No upstream update and force=false — skipping publish."
           fi
 
-      - name: Download upstream fonts
-        if: steps.decide.outputs.publish == 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          ARGS=(--force --update-upstream-version)
-          if [ "${{ steps.input.outputs.include_mono }}" = "true" ]; then
-            ARGS+=(--include-mono)
-          fi
-          python scripts/download.py "${ARGS[@]}"
-
-      - name: Build WebFont package
-        if: steps.decide.outputs.publish == 'true'
-        run: python scripts/build.py
-
-      - name: Test package
-        if: steps.decide.outputs.publish == 'true'
-        run: python scripts/test.py
-
       - name: Resolve SemVer
         if: steps.decide.outputs.publish == 'true'
         id: ver
@@ -195,6 +176,25 @@ jobs:
           path.write_text(text, encoding="utf-8")
           print(f"pyproject.toml version -> {ver}")
           PY
+
+      - name: Download upstream fonts
+        if: steps.decide.outputs.publish == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ARGS=(--force --update-upstream-version)
+          if [ "${{ steps.input.outputs.include_mono }}" = "true" ]; then
+            ARGS+=(--include-mono)
+          fi
+          python scripts/download.py "${ARGS[@]}"
+
+      - name: Build WebFont package
+        if: steps.decide.outputs.publish == 'true'
+        run: python scripts/build.py
+
+      - name: Test package
+        if: steps.decide.outputs.publish == 'true'
+        run: python scripts/test.py
 
       - name: Commit dist, tag, and create GitHub Release
         if: steps.decide.outputs.publish == 'true'
@@ -292,3 +292,42 @@ jobs:
             echo "- Commit: \`${RELEASE_SHA}\`"
             echo "- jsDelivr: https://cdn.jsdelivr.net/gh/nulijiazaizhong/LXGW-WenKai-Web@${TAG}/dist/style.css"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Setup Node.js for npm
+        if: steps.decide.outputs.publish == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Publish package to npm
+        if: steps.decide.outputs.publish == 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${NODE_AUTH_TOKEN}" ]; then
+            echo "::warning::NPM_TOKEN secret is not configured — skipping npm publish."
+            echo "Add a repository secret named NPM_TOKEN (npm Automation token) to enable npm releases."
+            exit 0
+          fi
+
+          # Publish dist/ as the package root (build already writes dist/package.json).
+          python - <<PY
+          import json
+          from pathlib import Path
+          ver = "${{ steps.ver.outputs.version }}"
+          pkg_path = Path("dist/package.json")
+          data = json.loads(pkg_path.read_text(encoding="utf-8"))
+          data["version"] = ver
+          pkg_path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+          print(f"dist/package.json version -> {ver}")
+          PY
+
+          cp README.md dist/README.md
+          if [ -f LICENSE ]; then cp LICENSE dist/LICENSE; fi
+          if [ -f OFL.txt ]; then cp OFL.txt dist/OFL.txt; fi
+
+          cd dist
+          npm publish --access public
+          echo "Published $(node -p "const p=require('./package.json'); p.name + '@' + p.version")"

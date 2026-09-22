@@ -161,11 +161,20 @@ def test_css(dist_dir: Path, woff2_files: list[Path], log) -> None:
     for woff2 in woff2_files:
         module = dist_dir / f"{woff2.stem.lower().replace('_', '-')}.css"
         if not module.is_file():
-            # Not fatal for core tests; warn only if style.css exists alone.
             continue
         text = module.read_text(encoding="utf-8")
         if woff2.name not in text:
             raise TestFailure(f"{module.name} does not reference {woff2.name}")
+        if "font-display: swap" not in text:
+            raise TestFailure(f"{module.name} must use font-display: swap")
+
+    # Fontsource-style numeric aliases (400.css etc.) when present.
+    for module in dist_dir.glob("*.css"):
+        if module.name == "style.css" or module.name.startswith("lxgwwenkai"):
+            continue
+        text = module.read_text(encoding="utf-8")
+        if "@font-face" not in text:
+            raise TestFailure(f"{module.name} missing @font-face")
         if "font-display: swap" not in text:
             raise TestFailure(f"{module.name} must use font-display: swap")
 

@@ -50,10 +50,11 @@ def render_css(
         filename = str(face["file"])
         if not filename.endswith(".woff2"):
             raise BuildError(f"CSS face file must be .woff2, got {filename!r}")
+        face_family = str(face.get("family") or family)
         lines.extend(
             [
                 "@font-face {",
-                f'  font-family: "{family}";',
+                f'  font-family: "{face_family}";',
                 f"  font-style: {style};",
                 f"  font-weight: {weight};",
                 f"  font-display: {font_display};",
@@ -93,6 +94,26 @@ def per_face_css_name(face: dict[str, Any]) -> str:
     return f"{slug}.css"
 
 
+def fontsource_css_name(face: dict[str, Any]) -> str | None:
+    """Fontsource-style entry names used by site font.yaml loaders.
+
+    Examples: 300.css, 400.css, 500.css, 400-italic.css, mono-400.css
+    Returns None for faces we do not expose this way.
+    """
+    weight = int(face.get("weight") or 400)
+    style = str(face.get("style") or "normal")
+    family = str(face.get("family") or "")
+    filename = str(face.get("file") or "")
+    is_mono = "mono" in filename.lower() or "mono" in family.lower()
+    if is_mono:
+        base = f"mono-{weight}"
+    else:
+        base = str(weight)
+    if style == "italic":
+        return f"{base}-italic.css"
+    return f"{base}.css"
+
+
 def write_css(
     faces: list[dict[str, Any]],
     dest: Path | None = None,
@@ -122,6 +143,20 @@ def write_css(
         for face in faces:
             name = per_face_css_name(face)
             path = out_dir / name
+            path.write_text(
+                render_css([face], family=family, font_display=font_display),
+                encoding="utf-8",
+            )
+            written.append(path)
+
+        # Fontsource-compatible aliases (e.g. 400.css) for font.yaml / npm loaders.
+        seen: set[str] = set()
+        for face in faces:
+            alias = fontsource_css_name(face)
+            if not alias or alias in seen:
+                continue
+            seen.add(alias)
+            path = out_dir / alias
             path.write_text(
                 render_css([face], family=family, font_display=font_display),
                 encoding="utf-8",

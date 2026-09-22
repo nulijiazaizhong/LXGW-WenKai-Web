@@ -115,6 +115,57 @@ Available CSS modules (one per face, auto-generated):
 
 Optional Mono faces (when built with `--include-mono`) use `lxgwwenkaimono-*.css` and `"LXGW WenKai Mono"`.
 
+Fontsource-style numeric aliases are also emitted: `300.css`, `400.css`, `500.css` (and `mono-*.css` if Mono is packaged). Use these with site font loaders that expect `@fontsource/.../400.css`-style paths.
+
+#### Use in `font.yaml` (site font roles)
+
+Replace the CJK entry (keep body/mono as you like):
+
+```yaml
+  # 2. 中日韩字体 —— LXGW WenKai
+  - id: "lxgw-wenkai-cjk"
+    family: "LXGW WenKai"
+    role: "cjk"
+    source: "fontsource"
+    variants:
+      - file: "@nulijiazaizhong/lxgw-wenkai-webfont/400.css"
+        weight: 400
+        style: "normal"
+      - file: "@nulijiazaizhong/lxgw-wenkai-webfont/500.css"
+        weight: 500
+        style: "normal"
+      # 可选轻字重
+      # - file: "@nulijiazaizhong/lxgw-wenkai-webfont/300.css"
+      #   weight: 300
+      #   style: "normal"
+    fallback:
+      - "system-ui"
+      - "sans-serif"
+    display: "swap"
+    preload: false
+```
+
+If your loader only accepts local files, download the WOFF2 faces and point at them:
+
+```yaml
+  - id: "lxgw-wenkai-cjk"
+    family: "LXGW WenKai"
+    role: "cjk"
+    source: "local"
+    variants:
+      - file: "src/assets/fonts/LXGWWenKai-Regular.woff2"
+        weight: 400
+        style: "normal"
+      - file: "src/assets/fonts/LXGWWenKai-Medium.woff2"
+        weight: 500
+        style: "normal"
+    fallback:
+      - "system-ui"
+      - "sans-serif"
+    display: "swap"
+    preload: false
+```
+
 ---
 
 ## Features
@@ -275,8 +326,8 @@ Workflows use the default `GITHUB_TOKEN` only (no personal PAT):
 | --- | --- |
 | `build.yml` | `contents: read` |
 | `upstream-check.yml` | `contents: write`, `pull-requests: write`, `actions: write` (PR + dispatch publish) |
-| `auto-publish.yml` | `contents: write` (commit dist, tag, Release) |
-| `release.yml` | `contents: write` (create Release + upload assets) |
+| `auto-publish.yml` | `contents: write` (commit dist, tag, Release); uses secret `NPM_TOKEN` for npm |
+| `release.yml` | `contents: write` (Release + npm via `NPM_TOKEN`) |
 
 If your org blocks the default token from opening PRs, enable **“Allow GitHub Actions to create and approve pull requests”** in *Settings → Actions → General*, or create the PR manually from the check branch.
 
@@ -353,6 +404,42 @@ Generated CSS uses **relative** `url("./….woff2")`, so the same files work fro
 ### Self-host
 
 Download a Release, serve `dist/` over HTTPS, and keep the CSS next to the `.woff2` files.
+
+---
+
+## npm publish (CI)
+
+`auto-publish.yml` and `release.yml` run `npm publish dist --access public` after the GitHub Release.
+
+| Item | Value |
+| --- | --- |
+| Package name | `@nulijiazaizhong/lxgw-wenkai-webfont` |
+| Publish root | `dist/` (contains `package.json`, `style.css`, `*.woff2`, …) |
+| Required secret | `NPM_TOKEN` |
+
+### Configure `NPM_TOKEN`
+
+1. Sign in at <https://www.npmjs.com> (account must own the **`@nulijiazaizhong`** scope, or change `name` in `scripts/build.py` / `package.json`).
+2. **Access Tokens → Generate New Token → Automation** (publish from CI).
+3. GitHub repo **Settings → Secrets and variables → Actions → New repository secret**  
+   - Name: `NPM_TOKEN`  
+   - Value: the npm token
+
+Without `NPM_TOKEN`, Actions still publishes the GitHub Release/jsDelivr package and **warns**, then skips npm.
+
+After the first successful publish:
+
+```sh
+npm install --save @nulijiazaizhong/lxgw-wenkai-webfont
+```
+
+```css
+@import "@nulijiazaizhong/lxgw-wenkai-webfont/400.css";
+@import "@nulijiazaizhong/lxgw-wenkai-webfont/500.css";
+body {
+  font-family: "LXGW WenKai", sans-serif;
+}
+```
 
 ---
 

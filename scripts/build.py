@@ -398,6 +398,36 @@ def main(argv: list[str] | None = None) -> int:
         for css_path in css_paths:
             log.info("Wrote %s", css_path.name)
 
+    # npm package manifest (publish dist/ as package root).
+    package_json = {
+        "name": "@nulijiazaizhong/lxgw-wenkai-webfont",
+        "version": read_webfont_version(),
+        "description": "WOFF2 WebFont packaging for LXGW WenKai (霞鹜文楷)",
+        "license": "(MIT AND OFL-1.1)",
+        "style": "style.css",
+        "files": [
+            "*.woff2",
+            "*.css",
+            "metadata.json",
+            "sha256.txt",
+            "OFL.txt",
+            "LICENSE",
+            "README.md",
+        ],
+        "keywords": ["lxgw", "wenkai", "webfont", "woff2", "cjk", "font"],
+        "repository": {
+            "type": "git",
+            "url": "git+https://github.com/nulijiazaizhong/LXGW-WenKai-Web.git",
+        },
+        "homepage": "https://github.com/nulijiazaizhong/LXGW-WenKai-Web",
+        "publishConfig": {"access": "public"},
+    }
+    (dist_dir / "package.json").write_text(
+        json.dumps(package_json, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    log.info("Wrote %s", dist_dir / "package.json")
+
     meta_path = write_metadata(dist_dir, faces, face_files, source_manifest=source_manifest)
     log.info("Wrote %s", meta_path)
 
