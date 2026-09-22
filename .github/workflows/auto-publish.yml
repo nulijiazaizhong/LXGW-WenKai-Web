@@ -308,7 +308,7 @@ jobs:
           set -euo pipefail
           if [ -z "${NODE_AUTH_TOKEN}" ]; then
             echo "::warning::NPM_TOKEN secret is not configured — skipping npm publish."
-            echo "Add a repository secret named NPM_TOKEN (npm Automation token) to enable npm releases."
+            echo "Add NPM_TOKEN (Automation or Granular token with Bypass 2FA) to enable npm releases."
             exit 0
           fi
 
@@ -329,5 +329,14 @@ jobs:
           if [ -f OFL.txt ]; then cp OFL.txt dist/OFL.txt; fi
 
           cd dist
+          set +e
           npm publish --access public
+          code=$?
+          set -e
+          if [ "$code" -ne 0 ]; then
+            echo "::error::npm publish failed (exit ${code})."
+            echo "If you see npm error code EOTP, recreate NPM_TOKEN with 'Bypass two-factor authentication (2FA)' enabled (or use an Automation token)."
+            echo "See README section 'npm error EOTP'."
+            exit "$code"
+          fi
           echo "Published $(node -p "const p=require('./package.json'); p.name + '@' + p.version")"

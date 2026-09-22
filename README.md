@@ -420,12 +420,36 @@ Download a Release, serve `dist/` over HTTPS, and keep the CSS next to the `.wof
 ### Configure `NPM_TOKEN`
 
 1. Sign in at <https://www.npmjs.com> (account/org must own the **`@nulijiazaizhon`** npm scope — note this is the **npm organization** name and is intentionally different from the GitHub user `nulijiazaizhong`).
-2. **Access Tokens → Generate New Token → Automation** (publish from CI).
+2. Create a token that **can publish without interactive 2FA**:
+   - **Access Tokens → Generate New Token → Automation** (classic), **or**
+   - **Granular Access Token** with:
+     - **Packages and scopes** → **Read and write (publish and stage)** → scope **`@nulijiazaizhon`**
+     - **Organizations** → Read and write → **nulijiazaizhon**
+     - **Bypass two-factor authentication (2FA)** → **checked (required for CI)**
 3. GitHub repo **Settings → Secrets and variables → Actions → New repository secret**  
    - Name: `NPM_TOKEN`  
    - Value: the npm token
 
 Without `NPM_TOKEN`, Actions still publishes the GitHub Release/jsDelivr package and **warns**, then skips npm.
+
+### npm error `EOTP` (one-time password)
+
+If publish fails with:
+
+```text
+npm error code EOTP
+npm error This operation requires a one-time password from your authenticator.
+```
+
+the token still enforces 2FA on write. CI cannot enter a TOTP code.
+
+Fix:
+
+1. Revoke the current npm token.
+2. Create a new **Automation** token, or a **Granular** token with **“Bypass two-factor authentication (2FA)” checked**.
+3. Update the GitHub `NPM_TOKEN` secret and re-run **Auto Build and Publish**.
+
+Do **not** put a TOTP seed or `--otp=` code in GitHub Secrets for routine publishes.
 
 After the first successful publish:
 
