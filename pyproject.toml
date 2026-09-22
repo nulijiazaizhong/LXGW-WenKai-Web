@@ -1,6 +1,6 @@
 [project]
 name = "lxgw-wenkai-webfont"
-version = "1.0.0"
+version = "0.0.1"
 description = "Auto-updating WOFF2 WebFont packaging for LXGW WenKai (霞鹜文楷), served via GitHub Releases + jsDelivr"
 readme = "README.md"
 requires-python = ">=3.11"

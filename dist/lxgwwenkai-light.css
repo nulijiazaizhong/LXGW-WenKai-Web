@@ -1,0 +1,14 @@
+/*!
+ * LXGW WenKai WebFont packaging project.
+ * Original font by LXGW — https://github.com/lxgw/LxgwWenKai
+ * SIL Open Font License 1.1 (OFL-1.1).
+ * This file is auto-generated. Do not edit by hand.
+ */
+
+@font-face {
+  font-family: "LXGW WenKai";
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url("./LXGWWenKai-Light.woff2") format("woff2");
+}
