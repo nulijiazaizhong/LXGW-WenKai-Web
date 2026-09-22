@@ -1,6 +1,6 @@
 {
   "name": "@nulijiazaizhon/lxgw-wenkai-webfont",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "WOFF2 WebFont packaging for LXGW WenKai (霞鹜文楷)",
   "license": "(MIT AND OFL-1.1)",
   "style": "style.css",
