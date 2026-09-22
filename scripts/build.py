@@ -394,8 +394,9 @@ def main(argv: list[str] | None = None) -> int:
             log.info("Subset  %s (%d bytes)", out.name, out.stat().st_size)
 
     if not args.skip_css:
-        css_path = write_css(face_files, dist_dir / "style.css")
-        log.info("Wrote %s", css_path)
+        css_paths = write_css(face_files, dist_dir / "style.css", dist_dir=dist_dir)
+        for css_path in css_paths:
+            log.info("Wrote %s", css_path.name)
 
     meta_path = write_metadata(dist_dir, faces, face_files, source_manifest=source_manifest)
     log.info("Wrote %s", meta_path)

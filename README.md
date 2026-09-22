@@ -1,6 +1,11 @@
-# lxgw-wenkai-webfont
+lxgw-wenkai-webfont
+===================
 
-Auto-updating **WOFF2 WebFont** packaging for [LXGW WenKai / 霞鹜文楷](https://github.com/lxgw/LxgwWenKai).
+> A webfont package for the [LXGW WenKai / 霞鹜文楷](https://github.com/lxgw/LxgwWenKai) typeface.
+
+[![license][license-badge]](LICENSE) [![upstream][upstream-badge]][lxgw-wenkai] [![jsdelivr][jsdelivr-badge]][jsdelivr-url]
+
+For more information about the typeface, see [LXGW WenKai][lxgw-wenkai].
 
 This repository is a WebFont packaging project for LXGW WenKai.
 
@@ -9,6 +14,106 @@ The original font is created by LXGW.
 This project does not claim ownership of the original font and is **not** an official LXGW repository.
 
 > Tracked upstream: [`lxgw/LxgwWenKai`](https://github.com/lxgw/LxgwWenKai) · License: **SIL OFL 1.1** ([OFL.txt](./OFL.txt))
+
+---
+
+## Usage
+
+#### Use CDN
+
+Put the jsDelivr `<link>` into your HTML `<head>`, then set `font-family`.
+
+**Pinned version (production — recommended):**
+
+```html
+<html>
+<head>
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/gh/nulijiazaizhong/LXGW-WenKai-Web@v1.0.0/dist/style.css"
+  />
+  <style>
+    body {
+      font-family: "LXGW WenKai", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <!-- … -->
+</body>
+</html>
+```
+
+```css
+body {
+  font-family: "LXGW WenKai", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+```
+
+Do **not** use `@latest` / `@main` in production.
+
+Direct WOFF2 (same pin):
+
+```text
+https://cdn.jsdelivr.net/gh/nulijiazaizhong/LXGW-WenKai-Web@v1.0.0/dist/LXGWWenKai-Regular.woff2
+https://cdn.jsdelivr.net/gh/nulijiazaizhong/LXGW-WenKai-Web@v1.0.0/dist/LXGWWenKai-Medium.woff2
+https://cdn.jsdelivr.net/gh/nulijiazaizhong/LXGW-WenKai-Web@v1.0.0/dist/LXGWWenKai-Light.woff2
+```
+
+#### Use NPM
+
+If this package is published to npm, install it and import `style.css` from your main stylesheet:
+
+```sh
+npm install --save @nulijiazaizhong/lxgw-wenkai-webfont
+# or yarn
+yarn add @nulijiazaizhong/lxgw-wenkai-webfont
+```
+
+```css
+@import "@nulijiazaizhong/lxgw-wenkai-webfont/style.css";
+
+body {
+  font-family: "LXGW WenKai", sans-serif;
+}
+```
+
+> npm is optional for this repo. The GitHub + jsDelivr path above works without npm. If you publish, keep the package `name` / `files` aligned with what you actually upload (`dist/` contents + `OFL.txt` + `README.md`).
+
+#### Use specific font weights
+
+Include only the weights you need (smaller CSS payload, fewer font files):
+
+```css
+@import "https://cdn.jsdelivr.net/gh/nulijiazaizhong/LXGW-WenKai-Web@v1.0.0/dist/lxgwwenkai-regular.css";
+@import "https://cdn.jsdelivr.net/gh/nulijiazaizhong/LXGW-WenKai-Web@v1.0.0/dist/lxgwwenkai-medium.css";
+
+body {
+  font-family: "LXGW WenKai", sans-serif;
+}
+```
+
+Or from npm after install:
+
+```css
+@import "@nulijiazaizhong/lxgw-wenkai-webfont/lxgwwenkai-regular.css";
+@import "@nulijiazaizhong/lxgw-wenkai-webfont/lxgwwenkai-bold.css";
+
+body {
+  font-family: "LXGW WenKai", sans-serif;
+}
+```
+
+Available CSS modules (one per face, auto-generated):
+
+| Module | Weight | WOFF2 |
+| --- | --- | --- |
+| `style.css` | all faces | all |
+| `lxgwwenkai-light.css` | 300 | `LXGWWenKai-Light.woff2` |
+| `lxgwwenkai-regular.css` | 400 | `LXGWWenKai-Regular.woff2` |
+| `lxgwwenkai-medium.css` | 500 | `LXGWWenKai-Medium.woff2` |
+
+Optional Mono faces (when built with `--include-mono`) use `lxgwwenkaimono-*.css` and `"LXGW WenKai Mono"`.
 
 ---
 
@@ -97,7 +202,10 @@ dist/
 ├── LXGWWenKai-Light.woff2
 ├── LXGWWenKai-Regular.woff2
 ├── LXGWWenKai-Medium.woff2
-├── style.css
+├── style.css                  # all faces
+├── lxgwwenkai-light.css       # weight 300 only
+├── lxgwwenkai-regular.css     # weight 400 only
+├── lxgwwenkai-medium.css      # weight 500 only
 ├── metadata.json
 ├── sha256.txt
 └── OFL.txt
@@ -215,36 +323,9 @@ Release notes include WebFont version, upstream version, build date, and commit.
 
 ---
 
-## jsDelivr usage
+## CDN details
 
 jsDelivr reads **this repository’s tags** — nothing is uploaded to jsDelivr.
-
-This repository: [`nulijiazaizhong/LXGW-WenKai-Web`](https://github.com/nulijiazaizhong/LXGW-WenKai-Web).
-
-### Production (pinned — recommended)
-
-```html
-<link
-  rel="stylesheet"
-  href="https://cdn.jsdelivr.net/gh/nulijiazaizhong/LXGW-WenKai-Web@v1.0.0/dist/style.css"
-/>
-```
-
-```css
-body {
-  font-family: "LXGW WenKai", "LXGW WenKai TC", "PingFang SC", "Microsoft YaHei", sans-serif;
-}
-```
-
-Direct WOFF2 (same pin):
-
-```text
-https://cdn.jsdelivr.net/gh/nulijiazaizhong/LXGW-WenKai-Web@v1.0.0/dist/LXGWWenKai-Regular.woff2
-https://cdn.jsdelivr.net/gh/nulijiazaizhong/LXGW-WenKai-Web@v1.0.0/dist/LXGWWenKai-Medium.woff2
-https://cdn.jsdelivr.net/gh/nulijiazaizhong/LXGW-WenKai-Web@v1.0.0/dist/LXGWWenKai-Light.woff2
-```
-
-### Version selectors
 
 | Selector | Use |
 | --- | --- |
@@ -253,21 +334,11 @@ https://cdn.jsdelivr.net/gh/nulijiazaizhong/LXGW-WenKai-Web@v1.0.0/dist/LXGWWenK
 | `@main` | **Testing only** — changes without notice; not for production |
 | `@latest` | **Not recommended** for production |
 
-Generated CSS uses **relative** `url("./….woff2")`, so the same `style.css` works from GitHub raw, jsDelivr, or your own host.
+Generated CSS uses **relative** `url("./….woff2")`, so the same files work from GitHub raw, jsDelivr, npm, or your own host.
 
 ### Self-host
 
-Download a Release, serve `dist/` over HTTPS, and keep `style.css` next to the `.woff2` files.
-
----
-
-## npm (optional)
-
-Core builds do **not** depend on npm. If you want an npm package later:
-
-1. Choose an available package name (scoped `@your-org/lxgw-wenkai-webfont` is safest).
-2. Publish `dist/`, `OFL.txt`, and `README.md` only.
-3. Keep `package.json` `name` aligned with the npm scope you actually publish.
+Download a Release, serve `dist/` over HTTPS, and keep the CSS next to the `.woff2` files.
 
 ---
 
@@ -316,3 +387,9 @@ Then open `https://cdn.jsdelivr.net/gh/nulijiazaizhong/LXGW-WenKai-Web@v1.0.0/di
   Upstream copyright: LXGW and the Klee Project Authors. Reserved Font Names apply; additional permission allows format conversion (WOFF/WOFF2) for **webfont delivery** — see `OFL.txt`. Do not republish as installable desktop fonts under the reserved names.
 
 - Original project: <https://github.com/lxgw/LxgwWenKai>
+
+[license-badge]: https://img.shields.io/badge/license-MIT%20%2B%20OFL--1.1-blue.svg?style=flat-square
+[upstream-badge]: https://img.shields.io/badge/upstream-lxgw%2FLxgwWenKai-8A2BE2.svg?style=flat-square
+[lxgw-wenkai]: https://github.com/lxgw/LxgwWenKai
+[jsdelivr-badge]: https://data.jsdelivr.com/v1/package/gh/nulijiazaizhong/LXGW-WenKai-Web/badge
+[jsdelivr-url]: https://www.jsdelivr.com/package/gh/nulijiazaizhong/LXGW-WenKai-Web

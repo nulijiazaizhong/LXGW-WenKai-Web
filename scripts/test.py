@@ -157,6 +157,18 @@ def test_css(dist_dir: Path, woff2_files: list[Path], log) -> None:
     if missing:
         raise TestFailure(f"style.css does not reference all woff2 faces: {sorted(missing)}")
 
+    # Per-weight css modules (optional but expected when present in package).
+    for woff2 in woff2_files:
+        module = dist_dir / f"{woff2.stem.lower().replace('_', '-')}.css"
+        if not module.is_file():
+            # Not fatal for core tests; warn only if style.css exists alone.
+            continue
+        text = module.read_text(encoding="utf-8")
+        if woff2.name not in text:
+            raise TestFailure(f"{module.name} does not reference {woff2.name}")
+        if "font-display: swap" not in text:
+            raise TestFailure(f"{module.name} must use font-display: swap")
+
     log.info("OK  style.css (family, weights, font-display:swap, relative woff2 urls)")
 
 
