@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Build intermediates (never commit upstream TTF/OTF sources)
+build/*
+!build/.gitkeep
+src/*
+!src/.gitkeep
+
+# dist/ product files are committed only on release tags (see release.yml).
+dist/*
+!dist/.gitkeep
+
+# Optional local env
+.env
+.env.*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Local test artifacts
+*.log
+.cache/
+
+# Internal task notes (not part of the published package)
+agent.md

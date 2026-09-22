@@ -1,0 +1,187 @@
+name: Release
+
+# Preferred entry: workflow_dispatch with a SemVer tag (e.g. v1.0.0).
+# Builds WebFonts, commits dist/ onto the release commit, tags it, and creates
+# a GitHub Release. Tag trees therefore contain dist/ so jsDelivr /gh/ works:
+#   https://cdn.jsdelivr.net/gh/nulijiazaizhong/LXGW-WenKai-Web@vX.Y.Z/dist/style.css
+#
+# Tag-push is kept as a fallback that rebuilds and re-tags a commit that
+# includes dist/ (the tag is moved forward only if it has no GitHub Release yet).
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "WebFont SemVer tag to create (e.g. v1.0.0)"
+        required: true
+        type: string
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # Needed so the workflow can push the release commit/tag.
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve version
+        id: ver
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.version }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          case "$TAG" in
+            v*) ;;
+            *) TAG="v${TAG}" ;;
+          esac
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Download upstream fonts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python scripts/download.py --force --update-upstream-version
+
+      - name: Build WebFont package
+        run: python scripts/build.py
+
+      - name: Test package
+        run: python scripts/test.py
+
+      - name: Collect release assets
+        run: |
+          mkdir -p release-assets
+          cp -a dist/. release-assets/
+          if [ ! -f release-assets/OFL.txt ] && [ -f OFL.txt ]; then
+            cp OFL.txt release-assets/OFL.txt
+          fi
+          ls -la release-assets
+
+      - name: Commit dist and tag
+        id: tagpush
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.ver.outputs.tag }}"
+          WEB="${{ steps.ver.outputs.version }}"
+          DEFAULT_BRANCH="${{ github.event.repository.default_branch }}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Ensure dist artifacts are tracked at the tagged commit (jsDelivr /gh/).
+          git add -f dist/*.woff2 dist/style.css dist/metadata.json dist/sha256.txt dist/OFL.txt 2>/dev/null || true
+          git add dist UPSTREAM_VERSION
+
+          if git diff --cached --quiet; then
+            echo "dist already up to date at HEAD; tagging current commit."
+            RELEASE_SHA="${GITHUB_SHA}"
+          else
+            git commit -m "release: ${TAG} webfont package (dist/)"
+            RELEASE_SHA="$(git rev-parse HEAD)"
+          fi
+
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            EXISTING="$(git rev-parse "$TAG")"
+            if [ "$EXISTING" = "$RELEASE_SHA" ]; then
+              echo "Tag $TAG already points at $RELEASE_SHA"
+            else
+              # Only retarget tags that have no published Release yet.
+              if gh release view "$TAG" >/dev/null 2>&1; then
+                echo "Tag $TAG already has a GitHub Release; refusing to move it." >&2
+                exit 1
+              fi
+              echo "Moving tag $TAG from $EXISTING to $RELEASE_SHA (no Release published yet)"
+              git tag -f -a "$TAG" -m "WebFont ${WEB}" "$RELEASE_SHA"
+              git push origin "refs/tags/${TAG}" --force
+            fi
+          else
+            git tag -a "$TAG" -m "WebFont ${WEB}" "$RELEASE_SHA"
+            git push origin "HEAD:${DEFAULT_BRANCH}" "refs/tags/${TAG}"
+          fi
+
+          # Keep default branch in sync when we created a new release commit on a detached tag checkout.
+          if [ "${{ github.event_name }}" = "push" ]; then
+            git push origin "HEAD:${DEFAULT_BRANCH}" || true
+          fi
+
+          echo "sha=${RELEASE_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.ver.outputs.tag }}"
+          WEB="${{ steps.ver.outputs.version }}"
+          UPSTREAM="$(tr -d '[:space:]' < UPSTREAM_VERSION 2>/dev/null || echo unknown)"
+          BUILT_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          COMMIT="${{ steps.tagpush.outputs.sha }}"
+
+          NOTES="$(cat <<EOF
+          ## LXGW WenKai WebFont ${WEB}
+
+          | Field | Value |
+          | --- | --- |
+          | WebFont version | \`${WEB}\` |
+          | Upstream | [lxgw/LxgwWenKai](https://github.com/lxgw/LxgwWenKai) \`${UPSTREAM}\` |
+          | Build date | ${BUILT_AT} |
+          | Commit | \`${COMMIT}\` |
+          | License | OFL-1.1 |
+
+          ### jsDelivr (pinned — recommended for production)
+
+          \`\`\`html
+          <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/nulijiazaizhong/LXGW-WenKai-Web@${TAG}/dist/style.css" />
+          \`\`\`
+
+          Do **not** use \`@latest\` / \`@main\` in production.
+
+          ### Assets
+
+          - \`*.woff2\` — full WOFF2 faces
+          - \`style.css\` — generated \`@font-face\` rules (relative URLs)
+          - \`metadata.json\` — build metadata + per-file SHA256
+          - \`sha256.txt\` — checksums
+          - \`OFL.txt\` — SIL Open Font License 1.1
+
+          This repository is a WebFont packaging project. The original font is created by LXGW.
+          EOF
+          )"
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists — uploading assets."
+            gh release upload "$TAG" release-assets/* --clobber
+          else
+            gh release create "$TAG" \
+              --title "WebFont ${WEB} (upstream ${UPSTREAM})" \
+              --notes "$NOTES" \
+              release-assets/*
+          fi

@@ -1,0 +1,124 @@
+name: Upstream Check
+
+on:
+  schedule:
+    # Daily at 03:00 UTC
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: upstream-check
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      has_update: ${{ steps.check.outputs.has_update }}
+      upstream_version: ${{ steps.check.outputs.upstream_version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Check upstream
+        id: check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set +e
+          python scripts/check_upstream.py --json --output /tmp/upstream.json
+          code=$?
+          set -e
+          echo "check_exit=$code" >> "$GITHUB_OUTPUT"
+          if [ "$code" -eq 0 ]; then
+            echo "has_update=false" >> "$GITHUB_OUTPUT"
+            echo "Upstream is already up to date."
+            exit 0
+          elif [ "$code" -eq 10 ]; then
+            echo "has_update=true" >> "$GITHUB_OUTPUT"
+            version=$(python -c "import json; print(json.load(open('/tmp/upstream.json'))['upstream_version'])")
+            tag=$(python -c "import json; print(json.load(open('/tmp/upstream.json'))['upstream_tag'])")
+            echo "upstream_version=$version" >> "$GITHUB_OUTPUT"
+            echo "upstream_tag=$tag" >> "$GITHUB_OUTPUT"
+            exit 0
+          else
+            echo "Upstream check failed with exit $code"
+            exit 1
+          fi
+
+      - name: Download + build + test (validation only)
+        if: steps.check.outputs.has_update == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python scripts/download.py --force
+          python scripts/build.py -v
+          python scripts/test.py -v
+
+      - name: Create update PR
+        if: steps.check.outputs.has_update == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version="${{ steps.check.outputs.upstream_version }}"
+          tag="${{ steps.check.outputs.upstream_tag }}"
+          branch="chore/upstream-${tag}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Only commit the version pin (not font binaries).
+          if [ ! -f UPSTREAM_VERSION ] || [ "$(tr -d '[:space:]' < UPSTREAM_VERSION)" != "$version" ]; then
+            printf '%s\n' "$version" > UPSTREAM_VERSION
+          fi
+
+          if git diff --quiet && git diff --staged --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          git checkout -B "$branch"
+          git add UPSTREAM_VERSION
+          git commit -m "chore: bump UPSTREAM_VERSION to ${tag}"
+          git push --force origin "$branch"
+
+          existing=$(gh pr list --head "$branch" --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            echo "PR #${existing} already exists."
+            exit 0
+          fi
+
+          gh pr create \
+            --title "chore: track upstream LXGW WenKai ${tag}" \
+            --body "$(cat <<EOF
+          ## Upstream update
+
+          - Upstream repository: https://github.com/lxgw/LxgwWenKai
+          - Tag: \`${tag}\`
+          - Version: \`${version}\`
+
+          This PR updates \`UPSTREAM_VERSION\`. After merge, tag a WebFont release
+          (see \`release.yml\`) so jsDelivr can serve a pinned version.
+
+          Please review CI build/test results before merging.
+          EOF
+          )" \
+            --base "${{ github.event.repository.default_branch }}" \
+            --head "$branch"
