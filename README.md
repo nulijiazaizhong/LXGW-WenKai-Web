@@ -65,13 +65,13 @@ https://cdn.jsdelivr.net/gh/nulijiazaizhong/LXGW-WenKai-Web@v0.0.1/dist/LXGWWenK
 If this package is published to npm, install it and import `style.css` from your main stylesheet:
 
 ```sh
-npm install --save @nulijiazaizhong/lxgw-wenkai-webfont
+npm install --save @nulijiazaizhon/lxgw-wenkai-webfont
 # or yarn
-yarn add @nulijiazaizhong/lxgw-wenkai-webfont
+yarn add @nulijiazaizhon/lxgw-wenkai-webfont
 ```
 
 ```css
-@import "@nulijiazaizhong/lxgw-wenkai-webfont/style.css";
+@import "@nulijiazaizhon/lxgw-wenkai-webfont/style.css";
 
 body {
   font-family: "LXGW WenKai", sans-serif;
@@ -96,8 +96,8 @@ body {
 Or from npm after install:
 
 ```css
-@import "@nulijiazaizhong/lxgw-wenkai-webfont/lxgwwenkai-regular.css";
-@import "@nulijiazaizhong/lxgw-wenkai-webfont/lxgwwenkai-bold.css";
+@import "@nulijiazaizhon/lxgw-wenkai-webfont/lxgwwenkai-regular.css";
+@import "@nulijiazaizhon/lxgw-wenkai-webfont/lxgwwenkai-bold.css";
 
 body {
   font-family: "LXGW WenKai", sans-serif;
@@ -128,14 +128,14 @@ Replace the CJK entry (keep body/mono as you like):
     role: "cjk"
     source: "fontsource"
     variants:
-      - file: "@nulijiazaizhong/lxgw-wenkai-webfont/400.css"
+      - file: "@nulijiazaizhon/lxgw-wenkai-webfont/400.css"
         weight: 400
         style: "normal"
-      - file: "@nulijiazaizhong/lxgw-wenkai-webfont/500.css"
+      - file: "@nulijiazaizhon/lxgw-wenkai-webfont/500.css"
         weight: 500
         style: "normal"
       # 可选轻字重
-      # - file: "@nulijiazaizhong/lxgw-wenkai-webfont/300.css"
+      # - file: "@nulijiazaizhon/lxgw-wenkai-webfont/300.css"
       #   weight: 300
       #   style: "normal"
     fallback:
@@ -413,13 +413,13 @@ Download a Release, serve `dist/` over HTTPS, and keep the CSS next to the `.wof
 
 | Item | Value |
 | --- | --- |
-| Package name | `@nulijiazaizhong/lxgw-wenkai-webfont` |
+| Package name | `@nulijiazaizhon/lxgw-wenkai-webfont` (npm org **`nulijiazaizhon`**, not the GitHub user `nulijiazaizhong`) |
 | Publish root | `dist/` (contains `package.json`, `style.css`, `*.woff2`, …) |
 | Required secret | `NPM_TOKEN` |
 
 ### Configure `NPM_TOKEN`
 
-1. Sign in at <https://www.npmjs.com> (account must own the **`@nulijiazaizhong`** scope, or change `name` in `scripts/build.py` / `package.json`).
+1. Sign in at <https://www.npmjs.com> (account/org must own the **`@nulijiazaizhon`** npm scope — note this is the **npm organization** name and is intentionally different from the GitHub user `nulijiazaizhong`).
 2. **Access Tokens → Generate New Token → Automation** (publish from CI).
 3. GitHub repo **Settings → Secrets and variables → Actions → New repository secret**  
    - Name: `NPM_TOKEN`  
@@ -430,12 +430,12 @@ Without `NPM_TOKEN`, Actions still publishes the GitHub Release/jsDelivr package
 After the first successful publish:
 
 ```sh
-npm install --save @nulijiazaizhong/lxgw-wenkai-webfont
+npm install --save @nulijiazaizhon/lxgw-wenkai-webfont
 ```
 
 ```css
-@import "@nulijiazaizhong/lxgw-wenkai-webfont/400.css";
-@import "@nulijiazaizhong/lxgw-wenkai-webfont/500.css";
+@import "@nulijiazaizhon/lxgw-wenkai-webfont/400.css";
+@import "@nulijiazaizhon/lxgw-wenkai-webfont/500.css";
 body {
   font-family: "LXGW WenKai", sans-serif;
 }

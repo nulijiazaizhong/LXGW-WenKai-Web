@@ -400,7 +400,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # npm package manifest (publish dist/ as package root).
     package_json = {
-        "name": "@nulijiazaizhong/lxgw-wenkai-webfont",
+        "name": "@nulijiazaizhon/lxgw-wenkai-webfont",
         "version": read_webfont_version(),
         "description": "WOFF2 WebFont packaging for LXGW WenKai (霞鹜文楷)",
         "license": "(MIT AND OFL-1.1)",

@@ -1,5 +1,5 @@
 {
-  "name": "@nulijiazaizhong/lxgw-wenkai-webfont",
+  "name": "@nulijiazaizhon/lxgw-wenkai-webfont",
   "version": "0.0.1",
   "description": "WOFF2 WebFont packaging for LXGW WenKai (霞鹜文楷). Publish dist/ as the npm package root (build writes dist/package.json).",
   "publishConfig": {
