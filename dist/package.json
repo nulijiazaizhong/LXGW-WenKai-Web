@@ -1,0 +1,32 @@
+{
+  "name": "@nulijiazaizhong/lxgw-wenkai-webfont",
+  "version": "0.0.2",
+  "description": "WOFF2 WebFont packaging for LXGW WenKai (霞鹜文楷)",
+  "license": "(MIT AND OFL-1.1)",
+  "style": "style.css",
+  "files": [
+    "*.woff2",
+    "*.css",
+    "metadata.json",
+    "sha256.txt",
+    "OFL.txt",
+    "LICENSE",
+    "README.md"
+  ],
+  "keywords": [
+    "lxgw",
+    "wenkai",
+    "webfont",
+    "woff2",
+    "cjk",
+    "font"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nulijiazaizhong/LXGW-WenKai-Web.git"
+  },
+  "homepage": "https://github.com/nulijiazaizhong/LXGW-WenKai-Web",
+  "publishConfig": {
+    "access": "public"
+  }
+}
