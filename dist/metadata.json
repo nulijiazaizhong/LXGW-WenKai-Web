@@ -1,18 +1,18 @@
 {
   "name": "LXGW WenKai",
   "webfont": {
-    "version": "0.0.5",
-    "built_at": "2026-09-22T12:45:21Z",
-    "python_version": "3.12.14",
-    "fonttools_version": "4.65.0",
+    "version": "0.1.0",
+    "built_at": "2026-10-18T08:16:47Z",
+    "python_version": "3.12.15",
+    "fonttools_version": "4.67.0",
     "builder": "lxgw-wenkai-webfont"
   },
   "upstream": {
     "repository": "lxgw/LxgwWenKai",
     "url": "https://github.com/lxgw/LxgwWenKai",
-    "version": "1.522",
-    "tag": "v1.522",
-    "commit": "e8b5b48b79f19f29aa68b0a178eab3472ea9f7e8"
+    "version": "1.530",
+    "tag": "v1.530",
+    "commit": "4becfb4d5cf0c92cfdb60a6e9b504bda43315325"
   },
   "license": "OFL-1.1",
   "css": {
@@ -28,9 +28,9 @@
       "subfamily": "Light",
       "weight": 300,
       "style": "normal",
-      "glyph_count": 46865,
-      "size": 10034852,
-      "sha256": "d9390758846ab76a01339ea37a3a0b1558efeee97240670c2f748e1675ccd363",
+      "glyph_count": 47334,
+      "size": 10192852,
+      "sha256": "829a43051701f98bfea3d2964fb580e32afe0bcc47651274107d29fa2de528fa",
       "source": "LXGWWenKai-Light.ttf"
     },
     {
@@ -39,9 +39,9 @@
       "subfamily": "Medium",
       "weight": 500,
       "style": "normal",
-      "glyph_count": 46867,
-      "size": 8952188,
-      "sha256": "ec2022329b12de91682436d5ddb0353b71d5cfffcaa83763b3861ad898e1047f",
+      "glyph_count": 47336,
+      "size": 9147056,
+      "sha256": "56a69cbfdd268f470a819ff8b78501e36c35a447805838c8c59042dbc5c57ecf",
       "source": "LXGWWenKai-Medium.ttf"
     },
     {
@@ -50,9 +50,9 @@
       "subfamily": "Regular",
       "weight": 400,
       "style": "normal",
-      "glyph_count": 46867,
-      "size": 8016756,
-      "sha256": "8c92d1b42fbfc8e6f81eb57810d58c85106e8682d1d05e9cda31552326e440d3",
+      "glyph_count": 47336,
+      "size": 8099268,
+      "sha256": "59e177a84866d4601c9f3930a59c6f18a28b356d9a7b8efd96d1e9e53f54eb58",
       "source": "LXGWWenKai-Regular.ttf"
     }
   ]
